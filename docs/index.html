@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARSHAL: Incentivizing Multi-Agent Reasoning via Self-Play with Strategic LLMs</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="header-image-container">
+            <img src="static/images/header.jpg" alt="MARSHAL Header" class="header-image">
+        </div>
+        <div class="container header-content">
+            <div class="logo-container">
+                <img src="static/images/logo_with_name.png" alt="MARSHAL Logo" class="project-logo">
+            </div>
+            <h1>MARSHAL: Incentivizing Multi-Agent Reasoning <br> via Self-Play with Strategic LLMs</h1>
+
+            <div class="authors">
+                <p>
+                    Huining Yuan<sup>1*</sup>, Zelai Xu<sup>1*</sup>, Zheyue Tan<sup>2</sup>, Xiangmin Yi<sup>1</sup>,
+                    <br>
+                    Mo Guang<sup>3</sup>, Kaiwen Long<sup>3</sup>, Haojia Hui<sup>3</sup>, Boxun Li<sup>4</sup>, Xinlei
+                    Chen<sup>1</sup>, Bo Zhao<sup>2</sup>, <br>
+                    Xiao-Ping Zhang<sup>1†</sup>, Chao Yu<sup>1†</sup>, Yu Wang<sup>1†</sup>
+                </p>
+                <p class="affiliations">
+                    <sup>1</sup>Tsinghua University, <sup>2</sup>Aalto University, <sup>3</sup>Li Auto Inc.,
+                    <sup>4</sup>Infinigence-AI
+                </p>
+            </div>
+
+            <div class="links">
+                <a href="https://arxiv.org/abs/2510.15414" class="btn"><i class="fas fa-file-pdf"></i> Paper</a>
+                <a href="https://github.com/thu-nics/MARSHAL" class="btn"><i class="fab fa-github"></i> Code</a>
+                <a href="https://huggingface.co/collections/nics-efc/marshal" class="btn"><img
+                        src="static/images/hf-logo.png" alt="HF" class="btn-icon"> Models</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section id="overview">
+            <h2>Overview</h2>
+            <div class="overview-content">
+                <div class="overview-text">
+                    <p>
+                        We introduce <strong>MARSHAL</strong>, an end-to-end Reinforcement Learning framework designed
+                        to incentivize <strong>M</strong>ulti-<strong>A</strong>gent <strong>R</strong>easoning through
+                        <strong>S</strong>elf-play with <strong>S</strong>trategic <strong>L</strong>LMs in a diverse
+                        range of competitive and cooperative games.
+                    </p>
+                    <p>
+                        MARSHAL addresses the challenge of credit assignment in multi-agent multi-turn self-play through
+                        two core mechanisms:
+                    </p>
+                    <ul>
+                        <li><strong>Turn-level Advantage Estimator:</strong> Enables fine-grained credit assignment,
+                            allowing the model to accurately attribute long-term outcomes to individual actions.</li>
+                        <li><strong>Agent-specific Advantage Normalization:</strong> Stabilizes the training process by
+                            calibrating advantage estimates relative to the performance of each agent.</li>
+                    </ul>
+
+                    <h3>Key Results</h3>
+                    <p>By leveraging self-play across strategic games, MARSHAL (initialized from Qwen3-4B) demonstrates
+                        significant generalization capabilities:</p>
+                    <ul>
+                        <li><strong>Strategic Games:</strong> Achieves up to <strong>28.7%</strong> performance
+                            improvement on held-out games.</li>
+                        <li><strong>Reasoning Benchmarks:</strong> When integrated into leading Multi-Agent Systems
+                            (MASs), MARSHAL yields consistent gains of up to:
+                            <ul>
+                                <li><strong>+10.0%</strong> on AIME</li>
+                                <li><strong>+6.6%</strong> on GPQA-Diamond</li>
+                                <li><strong>+3.5%</strong> on average across all tested benchmarks.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <div class="overview-image">
+                    <img src="static/images/results_overview.svg" alt="MARSHAL Performance Radar Chart">
+                    <p class="caption"><strong>Evaluation of MARSHAL</strong> and two baselines on strategic games and
+                        reasoning
+                        benchmarks. MARSHAL incentivizes multi-agent reasoning ability via self-play in strategic games
+                        and generalizes to improvements of multi-agent systems like MAD and AutoGen on math and QA
+                        benchmarks.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="method">
+            <h2>Method</h2>
+
+            <h3>Algorithmic Design</h3>
+            <p>
+                We introduce two modifications to GRPO for multi-agent self-play: a <strong>turn-level advantage
+                    estimator</strong> for fine-grained credit assignment, and <strong>agent-specific advantage
+                    normalization</strong> to stabilize training across heterogeneous roles.
+            </p>
+            <div class="method-image">
+                <img src="static/images/method_overview.svg" alt="MARSHAL Method Overview">
+                <p class="caption"><strong>Overview of MARSHAL.</strong> Left column: generating player
+                    trajectories through self-play in strategic games. Middle column: naive advantage estimation by
+                    GRPO. Right column: advantage estimation by MARSHAL for accurate credit assignment in multi-turn,
+                    multi-agent setting.</p>
+            </div>
+
+            <h3>Game Selection</h3>
+            <p>
+                We use a portfolio of six strategic games, split into training and held-out testing sets to evaluate
+                generalization:
+            </p>
+            <ul>
+                <li><strong>Perfect-information adversarial:</strong> For deterministic planning and spatial reasoning,
+                    </Form>train on <em>Tic-Tac-Toe</em>; test on <em>Connect Four</em>.</li>
+                <li><strong>Imperfect-information adversarial:</strong> For reasoning under uncertainty, train on
+                    <em>Kuhn Poker</em>; test on <em>Leduc Hold'em</em>.
+                </li>
+                <li><strong>Imperfect-information cooperative:</strong> For theory of mind and intent recognition,
+                    train on <em>Mini Hanabi</em>; test on <em>Simple Hanabi</em>.</li>
+            </ul>
+
+            <h3>Reward Design</h3>
+            <p>
+                The reward signal consists of three components:
+            </p>
+            <ul>
+                <li><strong>Intrinsic game rewards:</strong> +/-1 for win/loss/draw or chips won; shared reward for
+                    cooperative games.</li>
+                <li><strong>Action format regularization:</strong> Small reward for valid actions; large penalty for
+                    invalid ones.</li>
+                <li><strong>Response length penalty:</strong> Turn-level penalty for verbosity to encourage conciseness.
+                </li>
+            </ul>
+        </section>
+
+        <section id="results">
+            <h2>Main Results</h2>
+
+            <h3>Strategic Ability</h3>
+            <p>
+                MARSHAL agents master training domains and generalize effectively to complex, held-out games. The
+                generalist model achieves high performance across all settings, with <strong>28.7%</strong> improvement
+                on <em>Leduc Hold'em</em> and <strong>22.9%</strong> on <em>Simple Hanabi</em>, demonstrating robust
+                cross-category skill transfer.
+            </p>
+            <div class="results-group">
+                <div class="result-item">
+                    <img src="static/images/game_results.svg" alt="Game Performance">
+                    <p class="caption"><strong>Average normalized game returns.</strong> Specialist agents not only
+                        master their training
+                        domains but also generalize effectively to their more complex, held-out counterparts (e.g., from
+                        <em>Tic-Tac-Toe</em> to <em>Connect Four</em>). The generalist model achieves consistently high
+                        performance across the entire suite of games, establishing it as the most robust and versatile
+                        agent.
+                    </p>
+                </div>
+            </div>
+
+            <h3>Generalization to Multi-Agent Systems</h3>
+            <p>
+                We evaluate transfer to reasoning benchmarks within multi-agent systems. In the competitive
+                <strong>MAD</strong> [1] framework, the generalist agent improves by <strong>3.51%</strong> on average.
+                In
+                the collaborative <strong>AutoGen</strong> [2] framework, it achieves significant gains, including
+                <strong>+10.0%</strong> on AIME and <strong>+6.6%</strong> on GPQA-Diamond.
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Setting</th>
+                            <th rowspan="2">Model</th>
+                            <th rowspan="2">Average</th>
+                            <th colspan="5">Math</th>
+                            <th colspan="2">QA</th>
+                        </tr>
+                        <tr>
+                            <th>MATH</th>
+                            <th>GSM8K</th>
+                            <th>AQUA</th>
+                            <th>AIME</th>
+                            <th>AMC</th>
+                            <th>MMLU</th>
+                            <th>GPQA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Single Agent -->
+                        <tr>
+                            <td rowspan="7" style="vertical-align: middle; font-weight: bold; width: 100px;">Single
+                                Agent</td>
+                            <td>Qwen3-4B</td>
+                            <td>60.74</td>
+                            <td>87.60</td>
+                            <td>94.60</td>
+                            <td>39.80</td>
+                            <td>36.70</td>
+                            <td>70.00</td>
+                            <td>57.10</td>
+                            <td><strong>39.39</strong></td>
+                        </tr>
+                        <tr>
+                            <td>SPIRAL</td>
+                            <td><strong>63.75</strong></td>
+                            <td>87.50</td>
+                            <td><u>94.80</u></td>
+                            <td><u>51.20</u></td>
+                            <td>36.70</td>
+                            <td><strong>80.00</strong></td>
+                            <td>58.70</td>
+                            <td>37.37</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td colspan="9" style="font-weight: bold; text-align: left; padding-left: 10px;">MARSHAL
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Tic-Tac-Toe</td>
+                            <td><u>63.54</u></td>
+                            <td><u>89.10</u></td>
+                            <td><strong>95.20</strong></td>
+                            <td>46.50</td>
+                            <td><u>40.00</u></td>
+                            <td><u>77.50</u></td>
+                            <td>57.60</td>
+                            <td><u>38.89</u></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Kuhn Poker</td>
+                            <td>61.38</td>
+                            <td>87.80</td>
+                            <td>94.50</td>
+                            <td>48.40</td>
+                            <td>33.30</td>
+                            <td>72.50</td>
+                            <td><u>59.30</u></td>
+                            <td>33.84</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Mini Hanabi</td>
+                            <td>62.05</td>
+                            <td>88.10</td>
+                            <td>94.70</td>
+                            <td>48.00</td>
+                            <td><strong>43.30</strong></td>
+                            <td>65.00</td>
+                            <td>58.90</td>
+                            <td>36.36</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td style="padding-left: 20px;"><strong>Generalist</strong></td>
+                            <td>62.79</td>
+                            <td><strong>89.90</strong></td>
+                            <td>94.60</td>
+                            <td><strong>52.00</strong></td>
+                            <td>33.30</td>
+                            <td>75.00</td>
+                            <td><strong>59.90</strong></td>
+                            <td>34.85</td>
+                        </tr>
+
+                        <!-- MAD -->
+                        <tr>
+                            <td rowspan="7" style="vertical-align: middle; font-weight: bold; width: 100px;">MAD
+                                (Competitive)</td>
+                            <td>Qwen3-4B</td>
+                            <td>72.45</td>
+                            <td>90.20</td>
+                            <td>95.91</td>
+                            <td>80.71</td>
+                            <td>40.00</td>
+                            <td>75.00</td>
+                            <td><strong>87.42</strong></td>
+                            <td>37.88</td>
+                        </tr>
+                        <tr>
+                            <td>SPIRAL</td>
+                            <td>73.41</td>
+                            <td>91.60</td>
+                            <td>95.45</td>
+                            <td>81.89</td>
+                            <td>40.00</td>
+                            <td>77.50</td>
+                            <td>87.01</td>
+                            <td>40.40</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td colspan="9" style="font-weight: bold; text-align: left; padding-left: 10px;">MARSHAL
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Tic-Tac-Toe</td>
+                            <td><u>75.01</u></td>
+                            <td><u>92.20</u></td>
+                            <td><u>96.06</u></td>
+                            <td><u>83.07</u></td>
+                            <td><u>43.33</u></td>
+                            <td><strong>82.50</strong></td>
+                            <td>86.76</td>
+                            <td>41.12</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Kuhn Poker</td>
+                            <td>74.54</td>
+                            <td>91.60</td>
+                            <td><strong>96.21</strong></td>
+                            <td>82.68</td>
+                            <td>40.00</td>
+                            <td><strong>82.50</strong></td>
+                            <td>87.39</td>
+                            <td><u>41.41</u></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Mini Hanabi</td>
+                            <td>73.70</td>
+                            <td>91.40</td>
+                            <td>95.60</td>
+                            <td>82.68</td>
+                            <td><u>43.33</u></td>
+                            <td>77.50</td>
+                            <td>87.04</td>
+                            <td>38.38</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td style="padding-left: 20px;"><strong>Generalist</strong></td>
+                            <td><strong>75.96</strong></td>
+                            <td><strong>92.80</strong></td>
+                            <td>95.60</td>
+                            <td><strong>83.86</strong></td>
+                            <td><strong>46.67</strong></td>
+                            <td><u>80.00</u></td>
+                            <td><u>87.36</u></td>
+                            <td><strong>45.45</strong></td>
+                        </tr>
+
+                        <!-- AutoGen -->
+                        <tr>
+                            <td rowspan="7" style="vertical-align: middle; font-weight: bold; width: 100px;">AutoGen
+                                (Cooperative)
+                            </td>
+                            <td>Qwen3-4B</td>
+                            <td>79.14</td>
+                            <td>93.40</td>
+                            <td><strong>94.69</strong></td>
+                            <td>85.04</td>
+                            <td>56.67</td>
+                            <td>87.50</td>
+                            <td>89.21</td>
+                            <td>47.47</td>
+                        </tr>
+                        <tr>
+                            <td>SPIRAL</td>
+                            <td>80.05</td>
+                            <td>94.20</td>
+                            <td>94.47</td>
+                            <td>86.61</td>
+                            <td>60.00</td>
+                            <td>87.50</td>
+                            <td><strong>91.60</strong></td>
+                            <td>45.96</td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td colspan="9" style="font-weight: bold; text-align: left; padding-left: 10px;">MARSHAL
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Tic-Tac-Toe</td>
+                            <td>80.15</td>
+                            <td>94.40</td>
+                            <td><strong>94.69</strong></td>
+                            <td><strong>87.01</strong></td>
+                            <td>60.00</td>
+                            <td>90.00</td>
+                            <td>89.53</td>
+                            <td>45.45</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Kuhn Poker</td>
+                            <td><u>81.54</u></td>
+                            <td><strong>95.80</strong></td>
+                            <td>94.39</td>
+                            <td><u>86.61</u></td>
+                            <td><u>63.33</u></td>
+                            <td><u>92.50</u></td>
+                            <td><u>89.65</u></td>
+                            <td><u>48.48</u></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px;">Mini Hanabi</td>
+                            <td><u>81.54</u></td>
+                            <td>94.40</td>
+                            <td><u>94.54</u></td>
+                            <td>86.22</td>
+                            <td><strong>66.67</strong></td>
+                            <td><strong>95.00</strong></td>
+                            <td>88.98</td>
+                            <td>44.95</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td style="padding-left: 20px;"><strong>Generalist</strong></td>
+                            <td><strong>82.15</strong></td>
+                            <td><u>95.20</u></td>
+                            <td><u>94.54</u></td>
+                            <td><u>86.61</u></td>
+                            <td><strong>66.67</strong></td>
+                            <td><u>92.50</u></td>
+                            <td>89.53</td>
+                            <td><strong>50.00</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="pattern-analysis">
+            <h2>Pattern Analysis</h2>
+
+            <h3>Qualitative</h3>
+            <p>
+                Analysis of reasoning traces reveals emergent multi-agent skills cultivated in games and transferred to
+                general-purpose systems.
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Skill</th>
+                            <th>Manifestation in Game-Play</th>
+                            <th>Generalize to Multi-Agent Systems</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Role Understanding</strong></td>
+                            <td>
+                                <em>The Tic-Tac-Toe specialist recognizes its role as the second player (O) and adopts a
+                                    defensive strategy.</em><br>
+                                <code>&lt;think&gt;... As the second-move player, I should prioritize blocking...&lt;/think&gt;</code>
+                            </td>
+                            <td>
+                                <em>The same agent, acting as the "negative" debater in MAD, adapts its strategy to
+                                    refute the opponent.</em><br>
+                                <code>&lt;think&gt;... As the negative side assistant, I should try to find an alternative solution...&lt;/think&gt;</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Intent Recognition</strong></td>
+                            <td>
+                                <em>The Hanabi specialist infers the intent behind a teammate's ambiguous hint.</em><br>
+                                <code>&lt;think&gt;... Maybe they want me to play this card to the stack? ...&lt;/think&gt;</code>
+                            </td>
+                            <td>
+                                <em>The same agent, acting as a user proxy in AutoGen, infers uncertainty from a
+                                    collaborator's missing 'TERMINATE' token.</em><br>
+                                <code>&lt;think&gt;... Maybe the assistant is not sure with this answer? ...&lt;/think&gt;</code>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Quantitative</h3>
+            <p>
+                Following the taxomony of <em>Cemri et al. (2025)</em> [3], failure mode analysis on GPQA-Diamond shows
+                a
+                <strong>11.5%</strong> reduction in Inter-Agent
+                Misalignment. This confirms that MARSHAL agents actively listen to peers and maintain focus, validating
+                the transfer of game-theoretic skills.
+            </p>
+            <div class="failure-analysis">
+                <img src="static/images/failure_mode.svg" alt="Failure Mode Analysis">
+                <p class="caption"><strong>Percentage of different failure modes in GPQA-Diamond.</strong> Through
+                    MARSHAL training, the generalist agent significantly reduces the occurrence of Inter-Agent
+                    Misalignment.</p>
+            </div>
+
+        </section>
+
+        <section id="ablation">
+            <h2>Ablation</h2>
+
+            <h3>Selfplay vs. Fixed-Opponent</h3>
+            <p>
+                Training against fixed opponents leads to overfitting and poor generalization. Self-play provides an
+                adaptive curriculum essential for developing robust, generalizable policies.
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Model</th>
+                            <th colspan="3">Training Games</th>
+                            <th colspan="3">Testing Games</th>
+                        </tr>
+                        <tr>
+                            <th>Tic-Tac-Toe</th>
+                            <th>Kuhn Poker</th>
+                            <th>Mini Hanabi</th>
+                            <th>Connect Four</th>
+                            <th>Leduc Hold'em</th>
+                            <th>Simple Hanabi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tic-Tac-Toe -->
+                        <tr class="highlight-row">
+                            <td><strong>MARSHAL (Tic-Tac-Toe)</strong></td>
+                            <td>75.30</td>
+                            <td>32.10</td>
+                            <td>3.42</td>
+                            <td>50.48</td>
+                            <td>30.65</td>
+                            <td>14.85</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/ fixed opponent</td>
+                            <td>88.00</td>
+                            <td>41.95</td>
+                            <td><u>63.15</u></td>
+                            <td>28.84</td>
+                            <td><u>34.93</u></td>
+                            <td><u>20.35</u></td>
+                        </tr>
+                        <!-- Kuhn Poker -->
+                        <tr class="highlight-row">
+                            <td><strong>MARSHAL (Kuhn Poker)</strong></td>
+                            <td>69.85</td>
+                            <td>25.50</td>
+                            <td>79.04</td>
+                            <td>22.49</td>
+                            <td>44.98</td>
+                            <td>27.60</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/ fixed opponent</td>
+                            <td><u>0.00</u></td>
+                            <td><u>0.00</u></td>
+                            <td><u>76.19</u></td>
+                            <td><u>15.64</u></td>
+                            <td><u>0.00</u></td>
+                            <td><u>0.00</u></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Analysis of Algorithmic Design</h3>
+            <p>
+                Ablation studies confirm that both the <strong>turn-level advantage estimator</strong> and
+                <strong>agent-specific normalization</strong> are critical. Removing either component significantly
+                degrades performance, especially in long-horizon and adversarial games.
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Model</th>
+                            <th colspan="3">Training Games</th>
+                            <th colspan="3">Testing Games</th>
+                        </tr>
+                        <tr>
+                            <th>Tic-Tac-Toe</th>
+                            <th>Kuhn Poker</th>
+                            <th>Mini Hanabi</th>
+                            <th>Connect Four</th>
+                            <th>Leduc Hold'em</th>
+                            <th>Simple Hanabi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tic-Tac-Toe -->
+                        <tr class="highlight-row">
+                            <td><strong>MARSHAL (Tic-Tac-Toe)</strong></td>
+                            <td>75.30</td>
+                            <td>32.10</td>
+                            <td>3.42</td>
+                            <td>50.48</td>
+                            <td>30.65</td>
+                            <td>14.85</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/o Turn-Level</td>
+                            <td><u>74.60</u></td>
+                            <td><u>24.15</u></td>
+                            <td>80.26</td>
+                            <td>28.35</td>
+                            <td><u>34.80</u></td>
+                            <td><u>26.75</u></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/o Agent-Specific</td>
+                            <td>82.70</td>
+                            <td><u>31.20</u></td>
+                            <td><u>70.89</u></td>
+                            <td><u>11.24</u></td>
+                            <td><u>44.10</u></td>
+                            <td><u>25.40</u></td>
+                        </tr>
+                        <!-- Kuhn Poker -->
+                        <tr class="highlight-row">
+                            <td><strong>MARSHAL (Kuhn Poker)</strong></td>
+                            <td>69.85</td>
+                            <td>25.50</td>
+                            <td>79.04</td>
+                            <td>22.49</td>
+                            <td>44.98</td>
+                            <td>27.60</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/o Turn-Level</td>
+                            <td><u>63.35</u></td>
+                            <td><u>19.65</u></td>
+                            <td>92.49</td>
+                            <td><u>21.02</u></td>
+                            <td><u>41.65</u></td>
+                            <td>29.60</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;w/o Agent-Specific</td>
+                            <td><u>69.55</u></td>
+                            <td><u>24.55</u></td>
+                            <td><u>75.37</u></td>
+                            <td><u>19.55</u></td>
+                            <td><u>40.18</u></td>
+                            <td><u>27.00</u></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="scaling">
+            <h2>Scaling to Larger Models</h2>
+            <p>
+                We extended training to the larger <strong>Qwen3-8B</strong> model. Results demonstrate that MARSHAL
+                scales stably, consistently unlocking collaborative and competitive reasoning capabilities at larger
+                scales.
+            </p>
+
+            <h3>Strategic Ability (8B)</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Tic-Tac-Toe</th>
+                            <th>Kuhn Poker</th>
+                            <th>Mini Hanabi</th>
+                            <th>Connect Four</th>
+                            <th>Leduc Hold'em</th>
+                            <th>Simple Hanabi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Qwen3-8B</td>
+                            <td>48.38</td>
+                            <td>33.12</td>
+                            <td>27.00</td>
+                            <td>10.48</td>
+                            <td>7.26</td>
+                            <td>4.55</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td><strong>MARSHAL (8B)</strong></td>
+                            <td><strong>54.05</strong></td>
+                            <td><strong>44.49</strong></td>
+                            <td><strong>55.28</strong></td>
+                            <td><strong>21.55</strong></td>
+                            <td><strong>53.89</strong></td>
+                            <td><strong>37.27</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Generalization to MAS (8B)</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MAS</th>
+                            <th>Model</th>
+                            <th>Avg</th>
+                            <th>MATH</th>
+                            <th>GSM8K</th>
+                            <th>AQUA</th>
+                            <th>AIME</th>
+                            <th>AMC</th>
+                            <th>MMLU</th>
+                            <th>GPQA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- MAD -->
+                        <tr>
+                            <td rowspan="2" style="vertical-align: middle; font-weight: bold;">MAD</td>
+                            <td>Qwen3-8B</td>
+                            <td>82.49</td>
+                            <td>95.00</td>
+                            <td>96.36</td>
+                            <td>83.46</td>
+                            <td>70.00</td>
+                            <td>90.00</td>
+                            <td>89.59</td>
+                            <td>53.03</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight-row"><strong>MARSHAL (8B)</strong></td>
+                            <td class="highlight-row"><strong>85.09</strong></td>
+                            <td class="highlight-row"><strong>96.40</strong></td>
+                            <td class="highlight-row"><strong>96.59</strong></td>
+                            <td class="highlight-row">83.46</td>
+                            <td class="highlight-row"><strong>80.00</strong></td>
+                            <td class="highlight-row"><strong>95.00</strong></td>
+                            <td class="highlight-row"><strong>90.70</strong></td>
+                            <td class="highlight-row"><strong>53.54</strong></td>
+                        </tr>
+                        <!-- AutoGen -->
+                        <tr>
+                            <td rowspan="2" style="vertical-align: middle; font-weight: bold;">AutoGen</td>
+                            <td>Qwen3-8B</td>
+                            <td>79.68</td>
+                            <td>88.80</td>
+                            <td>95.91</td>
+                            <td>83.07</td>
+                            <td>60.00</td>
+                            <td>89.19</td>
+                            <td>89.30</td>
+                            <td>51.52</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight-row"><strong>MARSHAL (8B)</strong></td>
+                            <td class="highlight-row"><strong>83.58</strong></td>
+                            <td class="highlight-row"><strong>94.40</strong></td>
+                            <td class="highlight-row">95.00</td>
+                            <td class="highlight-row"><strong>85.04</strong></td>
+                            <td class="highlight-row"><strong>70.00</strong></td>
+                            <td class="highlight-row"><strong>95.00</strong></td>
+                            <td class="highlight-row"><strong>90.04</strong></td>
+                            <td class="highlight-row"><strong>55.56</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="citation">
+            <h2>Citation</h2>
+            <pre><code>@misc{yuan2025marshal,
+      title={MARSHAL: Incentivizing Multi-Agent Reasoning via Self-Play with Strategic LLMs}, 
+      author={Huining Yuan and Zelai Xu and Zheyue Tan and Xiangmin Yi and Mo Guang and Kaiwen Long and Haojia Hui and Boxun Li and Xinlei Chen and Bo Zhao and Xiao-Ping Zhang and Chao Yu and Yu Wang},
+      year={2025},
+      eprint={2510.15414},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2510.15414}, 
+}</code></pre>
+        </section>
+
+        <section id="references">
+            <h2>References</h2>
+            <p class="reference-item">[1] Liang, Tian, et al. "Encouraging divergent thinking in large language models
+                through multi-agent debate." EMNLP 2024.</p>
+            <p class="reference-item">[2] Wu, Qingyun, et al. "Autogen: Enabling next-gen llm applications via
+                multi-agent conversation." COLM 2024.</p>
+            <p class="reference-item">[3] Cemri, Mert, et al. "Why do multi-agent llm systems fail?." NeurIPS 2025.</p>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 MARSHAL Project. All rights reserved.</p>
+    </footer>
+
+</body>
+
+</html>
