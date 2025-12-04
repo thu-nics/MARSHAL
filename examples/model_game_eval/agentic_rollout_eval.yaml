@@ -41,7 +41,7 @@ logging_steps: 1
 eval_steps: 10
 resume_from_checkpoint: false
 
-rollout_batch_size: 1500
+rollout_batch_size: 15000
 sequence_length: 32768
 
 reward_clip: 20
@@ -85,14 +85,6 @@ enable_think: True # False -> no think RL
 max_actions_per_traj: 50
 
 custom_envs:
-  TicTacToe:
-    env_type: tictactoe
-    max_actions_per_traj: ${max_actions_per_traj}
-    grid_vocab: false
-    env_config:
-      built_in_opponent: none  # Changed from "mcts" to "none" for self-play training
-      render_mode: text
-
   TicTacToe-first-100:
     env_type: tictactoe
     max_actions_per_traj: ${max_actions_per_traj}
@@ -129,6 +121,25 @@ custom_envs:
       max_simulations: 1000
       render_mode: text
 
+  Connect4-first-10:
+    env_type: connect_four
+    max_actions_per_traj: ${max_actions_per_traj}
+    grid_vocab: false
+    env_config:
+      built_in_opponent: mcts
+      max_simulations: 10
+      render_mode: text
+
+  Connect4-second-10:
+    env_type: connect_four
+    max_actions_per_traj: ${max_actions_per_traj}
+    grid_vocab: false
+    env_config:
+      built_in_opponent: mcts
+      opponent_player: 0
+      max_simulations: 10
+      render_mode: text
+
   Connect4-first-100:
     env_type: connect_four
     max_actions_per_traj: ${max_actions_per_traj}
@@ -144,25 +155,6 @@ custom_envs:
     env_config:
       built_in_opponent: mcts
       opponent_player: 0
-      render_mode: text
-
-  Connect4-first-1000:
-    env_type: connect_four
-    max_actions_per_traj: ${max_actions_per_traj}
-    grid_vocab: false
-    env_config:
-      built_in_opponent: mcts
-      max_simulations: 1000
-      render_mode: text
-
-  Connect4-second-1000:
-    env_type: connect_four
-    max_actions_per_traj: ${max_actions_per_traj}
-    grid_vocab: false
-    env_config:
-      built_in_opponent: mcts
-      opponent_player: 0
-      max_simulations: 1000
       render_mode: text
 
   KuhnPoker-first:
@@ -240,10 +232,10 @@ train_env_manager:
     TicTacToe-second-100, 
     TicTacToe-first-1000, 
     TicTacToe-second-1000,
+    Connect4-first-10,
+    Connect4-second-10,
     Connect4-first-100,
     Connect4-second-100,
-    Connect4-first-1000,
-    Connect4-second-1000,
     KuhnPoker-first,
     KuhnPoker-second,
     LeducPoker-first,
