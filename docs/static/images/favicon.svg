@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">MARSHAL</title>
+  <rect width="64" height="64" rx="14" fill="#20334f"/>
+  <path d="M14 48V16h8l10 17 10-17h8v32h-8V31L32 46 22 31v17z" fill="#fff"/>
+</svg>
